@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Service } from "@/types";
 import { fetchServices, formatPrice } from "@/lib/appointments";
 import { Scissors, Clock, MapPin, Phone, Calendar, Crown, Flame } from "lucide-react";
@@ -32,12 +33,17 @@ export default function Home() {
         </div>
 
         <div className="relative mx-auto max-w-md text-center">
-          {/* Logo com efeito gold */}
+          {/* Logo */}
           <div className="mb-6 flex justify-center animate-fade-scale">
             <div className="relative">
-              <div className="flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-[#d4af37] via-[#f5e7a3] to-[#8b6914] shadow-[0_0_40px_rgba(212,175,55,0.4)] pulse-gold">
-                <Scissors className="h-14 w-14 text-[#0a0a0a] scissors-icon" />
-              </div>
+              <Image
+                src="/logo.png"
+                alt="Barbearia Conceito"
+                width={160}
+                height={160}
+                className="rounded-full shadow-[0_0_40px_rgba(212,175,55,0.4)]"
+                priority
+              />
               {/* Corrente decorativa */}
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-transparent via-[#d4af37] to-transparent" />
             </div>
