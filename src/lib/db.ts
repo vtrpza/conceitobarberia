@@ -1,10 +1,17 @@
-import { createClient } from "@libsql/client";
+import { createClient, Client } from "@libsql/client";
 
-// Conexão com o banco de dados Turso
-const db = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN,
-});
+// Conexão lazy com o banco de dados Turso
+let _db: Client | null = null;
+
+function getDb(): Client {
+  if (!_db) {
+    _db = createClient({
+      url: process.env.TURSO_DATABASE_URL!,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
+  }
+  return _db;
+}
 
 // ============ SERVICES ============
 
@@ -17,12 +24,12 @@ export interface DbService {
 }
 
 export async function getServices(): Promise<DbService[]> {
-  const result = await db.execute("SELECT * FROM services");
+  const result = await getDb().execute("SELECT * FROM services");
   return result.rows as unknown as DbService[];
 }
 
 export async function getServiceById(id: string): Promise<DbService | undefined> {
-  const result = await db.execute({
+  const result = await getDb().execute({
     sql: "SELECT * FROM services WHERE id = ?",
     args: [id],
   });
@@ -50,6 +57,7 @@ export interface DbBarberPublic {
 }
 
 export async function getBarbers(): Promise<DbBarberPublic[]> {
+  const db = getDb();
   const barbersResult = await db.execute(`
     SELECT id, name, phone, avatar, working_hours FROM barbers
   `);
@@ -74,6 +82,7 @@ export async function getBarbers(): Promise<DbBarberPublic[]> {
 }
 
 export async function getBarberById(id: string): Promise<DbBarberPublic | undefined> {
+  const db = getDb();
   const barberResult = await db.execute({
     sql: "SELECT id, name, phone, avatar, working_hours FROM barbers WHERE id = ?",
     args: [id],
@@ -95,7 +104,7 @@ export async function getBarberById(id: string): Promise<DbBarberPublic | undefi
 }
 
 export async function getBarberByPhone(phone: string): Promise<DbBarber | undefined> {
-  const result = await db.execute({
+  const result = await getDb().execute({
     sql: "SELECT * FROM barbers WHERE phone = ?",
     args: [phone],
   });
@@ -118,12 +127,12 @@ export interface DbAppointment {
 }
 
 export async function getAppointments(): Promise<DbAppointment[]> {
-  const result = await db.execute("SELECT * FROM appointments ORDER BY date, time");
+  const result = await getDb().execute("SELECT * FROM appointments ORDER BY date, time");
   return result.rows as unknown as DbAppointment[];
 }
 
 export async function getAppointmentsByDate(date: string): Promise<DbAppointment[]> {
-  const result = await db.execute({
+  const result = await getDb().execute({
     sql: `
       SELECT * FROM appointments
       WHERE date = ? AND status != 'cancelled'
@@ -138,7 +147,7 @@ export async function getAppointmentsByBarberAndDate(
   barberId: string,
   date: string
 ): Promise<DbAppointment[]> {
-  const result = await db.execute({
+  const result = await getDb().execute({
     sql: `
       SELECT * FROM appointments
       WHERE barber_id = ? AND date = ? AND status != 'cancelled'
@@ -154,6 +163,7 @@ export async function getAppointmentsByDateRange(
   endDate: string,
   barberId?: string
 ): Promise<DbAppointment[]> {
+  const db = getDb();
   if (barberId) {
     const result = await db.execute({
       sql: `
@@ -188,7 +198,7 @@ export async function createAppointment(data: {
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
 
-  await db.execute({
+  await getDb().execute({
     sql: `
       INSERT INTO appointments (id, client_name, client_phone, barber_id, service_id, date, time, status, notes, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
@@ -224,7 +234,7 @@ export async function updateAppointmentStatus(
   id: string,
   status: DbAppointment["status"]
 ): Promise<boolean> {
-  const result = await db.execute({
+  const result = await getDb().execute({
     sql: "UPDATE appointments SET status = ? WHERE id = ?",
     args: [status, id],
   });
@@ -233,7 +243,7 @@ export async function updateAppointmentStatus(
 }
 
 export async function getAppointmentById(id: string): Promise<DbAppointment | undefined> {
-  const result = await db.execute({
+  const result = await getDb().execute({
     sql: "SELECT * FROM appointments WHERE id = ?",
     args: [id],
   });
@@ -247,7 +257,7 @@ export async function checkSlotAvailable(
   date: string,
   time: string
 ): Promise<boolean> {
-  const result = await db.execute({
+  const result = await getDb().execute({
     sql: `
       SELECT id FROM appointments
       WHERE barber_id = ? AND date = ? AND time = ? AND status != 'cancelled'
@@ -259,4 +269,4 @@ export async function checkSlotAvailable(
   return result.rows.length === 0;
 }
 
-export { db };
+export { getDb as db };
