@@ -3,7 +3,7 @@ import { getBarbers } from "@/lib/db";
 
 export async function GET() {
   try {
-    const barbers = getBarbers();
+    const barbers = await getBarbers();
 
     // Formatar os dados para o frontend
     const formattedBarbers = barbers.map((barber) => ({

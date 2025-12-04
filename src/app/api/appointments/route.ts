@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se o horário está disponível
-    const isAvailable = checkSlotAvailable(barberId, date, time);
+    const isAvailable = await checkSlotAvailable(barberId, date, time);
     if (!isAvailable) {
       return NextResponse.json(
         { error: "Este horário não está mais disponível" },
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar o agendamento
-    const apt = createAppointment({
+    const apt = await createAppointment({
       clientName,
       clientPhone,
       barberId,
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
       return d.toISOString().split("T")[0];
     })();
 
-    const appointments = getAppointmentsByDateRange(
+    const appointments = await getAppointmentsByDateRange(
       startDate,
       endDate,
       barberId || undefined

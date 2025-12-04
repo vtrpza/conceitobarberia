@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const barber = getBarberById(barberId);
+    const barber = await getBarberById(barberId);
     if (!barber) {
       return NextResponse.json(
         { error: "Barbeiro não encontrado" },
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
 
-    const appointments = getAppointmentsByBarberAndDate(barberId, date);
+    const appointments = await getAppointmentsByBarberAndDate(barberId, date);
     const bookedTimes = appointments.map((a) => a.time);
 
     const slots: TimeSlot[] = [];

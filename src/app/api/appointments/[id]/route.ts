@@ -42,7 +42,7 @@ export async function PATCH(
     }
 
     // Verificar se o agendamento existe
-    const appointment = getAppointmentById(id);
+    const appointment = await getAppointmentById(id);
     if (!appointment) {
       return NextResponse.json(
         { error: "Agendamento não encontrado" },
@@ -51,7 +51,7 @@ export async function PATCH(
     }
 
     // Atualizar status
-    const updated = updateAppointmentStatus(id, status);
+    const updated = await updateAppointmentStatus(id, status);
     if (!updated) {
       return NextResponse.json(
         { error: "Erro ao atualizar agendamento" },

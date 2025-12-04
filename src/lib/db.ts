@@ -1,13 +1,10 @@
-import Database from "better-sqlite3";
-import path from "path";
+import { createClient } from "@libsql/client";
 
-// Conexão com o banco de dados
-const dbPath = path.join(process.cwd(), "data", "barbershop.db");
-const db = new Database(dbPath);
-
-// Configurações de performance
-db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
+// Conexão com o banco de dados Turso
+const db = createClient({
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
 
 // ============ SERVICES ============
 
@@ -19,12 +16,17 @@ export interface DbService {
   price: number;
 }
 
-export function getServices(): DbService[] {
-  return db.prepare("SELECT * FROM services").all() as DbService[];
+export async function getServices(): Promise<DbService[]> {
+  const result = await db.execute("SELECT * FROM services");
+  return result.rows as unknown as DbService[];
 }
 
-export function getServiceById(id: string): DbService | undefined {
-  return db.prepare("SELECT * FROM services WHERE id = ?").get(id) as DbService | undefined;
+export async function getServiceById(id: string): Promise<DbService | undefined> {
+  const result = await db.execute({
+    sql: "SELECT * FROM services WHERE id = ?",
+    args: [id],
+  });
+  return result.rows[0] as unknown as DbService | undefined;
 }
 
 // ============ BARBERS ============
@@ -47,42 +49,57 @@ export interface DbBarberPublic {
   services: string[]; // IDs dos serviços
 }
 
-export function getBarbers(): DbBarberPublic[] {
-  const barbers = db.prepare(`
+export async function getBarbers(): Promise<DbBarberPublic[]> {
+  const barbersResult = await db.execute(`
     SELECT id, name, phone, avatar, working_hours FROM barbers
-  `).all() as Omit<DbBarberPublic, "services">[];
+  `);
 
-  return barbers.map((barber) => {
-    const services = db
-      .prepare("SELECT service_id FROM barber_services WHERE barber_id = ?")
-      .all(barber.id) as { service_id: string }[];
+  const barbers = barbersResult.rows as unknown as Omit<DbBarberPublic, "services">[];
 
-    return {
-      ...barber,
-      services: services.map((s) => s.service_id),
-    };
-  });
+  const barbersWithServices = await Promise.all(
+    barbers.map(async (barber) => {
+      const servicesResult = await db.execute({
+        sql: "SELECT service_id FROM barber_services WHERE barber_id = ?",
+        args: [barber.id],
+      });
+
+      return {
+        ...barber,
+        services: servicesResult.rows.map((s) => (s as unknown as { service_id: string }).service_id),
+      };
+    })
+  );
+
+  return barbersWithServices;
 }
 
-export function getBarberById(id: string): DbBarberPublic | undefined {
-  const barber = db.prepare(`
-    SELECT id, name, phone, avatar, working_hours FROM barbers WHERE id = ?
-  `).get(id) as Omit<DbBarberPublic, "services"> | undefined;
+export async function getBarberById(id: string): Promise<DbBarberPublic | undefined> {
+  const barberResult = await db.execute({
+    sql: "SELECT id, name, phone, avatar, working_hours FROM barbers WHERE id = ?",
+    args: [id],
+  });
+
+  const barber = barberResult.rows[0] as unknown as Omit<DbBarberPublic, "services"> | undefined;
 
   if (!barber) return undefined;
 
-  const services = db
-    .prepare("SELECT service_id FROM barber_services WHERE barber_id = ?")
-    .all(id) as { service_id: string }[];
+  const servicesResult = await db.execute({
+    sql: "SELECT service_id FROM barber_services WHERE barber_id = ?",
+    args: [id],
+  });
 
   return {
     ...barber,
-    services: services.map((s) => s.service_id),
+    services: servicesResult.rows.map((s) => (s as unknown as { service_id: string }).service_id),
   };
 }
 
-export function getBarberByPhone(phone: string): DbBarber | undefined {
-  return db.prepare("SELECT * FROM barbers WHERE phone = ?").get(phone) as DbBarber | undefined;
+export async function getBarberByPhone(phone: string): Promise<DbBarber | undefined> {
+  const result = await db.execute({
+    sql: "SELECT * FROM barbers WHERE phone = ?",
+    args: [phone],
+  });
+  return result.rows[0] as unknown as DbBarber | undefined;
 }
 
 // ============ APPOINTMENTS ============
@@ -100,49 +117,66 @@ export interface DbAppointment {
   created_at: string;
 }
 
-export function getAppointments(): DbAppointment[] {
-  return db.prepare("SELECT * FROM appointments ORDER BY date, time").all() as DbAppointment[];
+export async function getAppointments(): Promise<DbAppointment[]> {
+  const result = await db.execute("SELECT * FROM appointments ORDER BY date, time");
+  return result.rows as unknown as DbAppointment[];
 }
 
-export function getAppointmentsByDate(date: string): DbAppointment[] {
-  return db.prepare(`
-    SELECT * FROM appointments
-    WHERE date = ? AND status != 'cancelled'
-    ORDER BY time
-  `).all(date) as DbAppointment[];
+export async function getAppointmentsByDate(date: string): Promise<DbAppointment[]> {
+  const result = await db.execute({
+    sql: `
+      SELECT * FROM appointments
+      WHERE date = ? AND status != 'cancelled'
+      ORDER BY time
+    `,
+    args: [date],
+  });
+  return result.rows as unknown as DbAppointment[];
 }
 
-export function getAppointmentsByBarberAndDate(
+export async function getAppointmentsByBarberAndDate(
   barberId: string,
   date: string
-): DbAppointment[] {
-  return db.prepare(`
-    SELECT * FROM appointments
-    WHERE barber_id = ? AND date = ? AND status != 'cancelled'
-    ORDER BY time
-  `).all(barberId, date) as DbAppointment[];
+): Promise<DbAppointment[]> {
+  const result = await db.execute({
+    sql: `
+      SELECT * FROM appointments
+      WHERE barber_id = ? AND date = ? AND status != 'cancelled'
+      ORDER BY time
+    `,
+    args: [barberId, date],
+  });
+  return result.rows as unknown as DbAppointment[];
 }
 
-export function getAppointmentsByDateRange(
+export async function getAppointmentsByDateRange(
   startDate: string,
   endDate: string,
   barberId?: string
-): DbAppointment[] {
+): Promise<DbAppointment[]> {
   if (barberId) {
-    return db.prepare(`
-      SELECT * FROM appointments
-      WHERE date >= ? AND date <= ? AND barber_id = ?
-      ORDER BY date, time
-    `).all(startDate, endDate, barberId) as DbAppointment[];
+    const result = await db.execute({
+      sql: `
+        SELECT * FROM appointments
+        WHERE date >= ? AND date <= ? AND barber_id = ?
+        ORDER BY date, time
+      `,
+      args: [startDate, endDate, barberId],
+    });
+    return result.rows as unknown as DbAppointment[];
   }
-  return db.prepare(`
-    SELECT * FROM appointments
-    WHERE date >= ? AND date <= ?
-    ORDER BY date, time
-  `).all(startDate, endDate) as DbAppointment[];
+  const result = await db.execute({
+    sql: `
+      SELECT * FROM appointments
+      WHERE date >= ? AND date <= ?
+      ORDER BY date, time
+    `,
+    args: [startDate, endDate],
+  });
+  return result.rows as unknown as DbAppointment[];
 }
 
-export function createAppointment(data: {
+export async function createAppointment(data: {
   clientName: string;
   clientPhone: string;
   barberId: string;
@@ -150,24 +184,27 @@ export function createAppointment(data: {
   date: string;
   time: string;
   notes?: string;
-}): DbAppointment {
+}): Promise<DbAppointment> {
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
 
-  db.prepare(`
-    INSERT INTO appointments (id, client_name, client_phone, barber_id, service_id, date, time, status, notes, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
-  `).run(
-    id,
-    data.clientName,
-    data.clientPhone,
-    data.barberId,
-    data.serviceId,
-    data.date,
-    data.time,
-    data.notes || null,
-    createdAt
-  );
+  await db.execute({
+    sql: `
+      INSERT INTO appointments (id, client_name, client_phone, barber_id, service_id, date, time, status, notes, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+    `,
+    args: [
+      id,
+      data.clientName,
+      data.clientPhone,
+      data.barberId,
+      data.serviceId,
+      data.date,
+      data.time,
+      data.notes || null,
+      createdAt,
+    ],
+  });
 
   return {
     id,
@@ -183,35 +220,43 @@ export function createAppointment(data: {
   };
 }
 
-export function updateAppointmentStatus(
+export async function updateAppointmentStatus(
   id: string,
   status: DbAppointment["status"]
-): boolean {
-  const result = db.prepare(`
-    UPDATE appointments SET status = ? WHERE id = ?
-  `).run(status, id);
+): Promise<boolean> {
+  const result = await db.execute({
+    sql: "UPDATE appointments SET status = ? WHERE id = ?",
+    args: [status, id],
+  });
 
-  return result.changes > 0;
+  return result.rowsAffected > 0;
 }
 
-export function getAppointmentById(id: string): DbAppointment | undefined {
-  return db.prepare("SELECT * FROM appointments WHERE id = ?").get(id) as DbAppointment | undefined;
+export async function getAppointmentById(id: string): Promise<DbAppointment | undefined> {
+  const result = await db.execute({
+    sql: "SELECT * FROM appointments WHERE id = ?",
+    args: [id],
+  });
+  return result.rows[0] as unknown as DbAppointment | undefined;
 }
 
 // ============ UTILS ============
 
-export function checkSlotAvailable(
+export async function checkSlotAvailable(
   barberId: string,
   date: string,
   time: string
-): boolean {
-  const existing = db.prepare(`
-    SELECT id FROM appointments
-    WHERE barber_id = ? AND date = ? AND time = ? AND status != 'cancelled'
-    LIMIT 1
-  `).get(barberId, date, time);
+): Promise<boolean> {
+  const result = await db.execute({
+    sql: `
+      SELECT id FROM appointments
+      WHERE barber_id = ? AND date = ? AND time = ? AND status != 'cancelled'
+      LIMIT 1
+    `,
+    args: [barberId, date, time],
+  });
 
-  return !existing;
+  return result.rows.length === 0;
 }
 
 export { db };

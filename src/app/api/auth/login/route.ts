@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar barbeiro pelo telefone
-    const barber = getBarberByPhone(phone);
+    const barber = await getBarberByPhone(phone);
     if (!barber) {
       return NextResponse.json(
         { error: "Credenciais inválidas" },
