@@ -20,66 +20,89 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-graffiti">
-      {/* Hero Section - ESTILO QUEBRADA */}
-      <section className="relative overflow-hidden px-4 pb-16 pt-12">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden px-4 pb-12 pt-8">
         {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#d4af37]/10 via-transparent to-transparent" />
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#8b0000]/20 blur-[100px] rounded-full" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#d4af37]/10 blur-[80px] rounded-full" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#1a1a2e]/80 via-[#0a0a0a] to-[#0a0a0a]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#8b0000]/15 blur-[120px] rounded-full" />
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-[#4a6fa5]/10 blur-[80px] rounded-full" />
 
-        {/* Pixo decorativo no canto */}
-        <div className="absolute top-4 right-4 font-pixo text-[#d4af37]/20 text-6xl rotate-12 select-none">
-          BC
-        </div>
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px),
+                           linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
+          backgroundSize: '50px 50px'
+        }} />
 
         <div className="relative mx-auto max-w-md text-center">
-          {/* Logo */}
-          <div className="mb-6 flex justify-center animate-fade-scale">
-            <div className="relative">
-              <Image
-                src="/logo.png"
-                alt="Barbearia Conceito"
-                width={160}
-                height={160}
-                className="rounded-full shadow-[0_0_40px_rgba(212,175,55,0.4)]"
-                priority
-              />
-              {/* Corrente decorativa */}
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-transparent via-[#d4af37] to-transparent" />
+          {/* Logo with 3D effect */}
+          <div className="mb-8 flex justify-center animate-fade-scale">
+            <div className="relative group">
+              {/* Glow layers for 3D depth */}
+              <div className="absolute inset-0 blur-3xl opacity-40 scale-90">
+                <Image
+                  src="/logo.png"
+                  alt=""
+                  width={280}
+                  height={280}
+                  className="opacity-60"
+                  aria-hidden="true"
+                />
+              </div>
+              <div className="absolute inset-0 blur-xl opacity-30 scale-95">
+                <Image
+                  src="/logo.png"
+                  alt=""
+                  width={280}
+                  height={280}
+                  className="opacity-50"
+                  aria-hidden="true"
+                />
+              </div>
+
+              {/* Main logo with 3D transforms */}
+              <div className="relative transform transition-all duration-500 group-hover:scale-105"
+                   style={{
+                     filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.5)) drop-shadow(0 10px 20px rgba(139,0,0,0.3))',
+                   }}>
+                <Image
+                  src="/logo.png"
+                  alt="Conceito BarberShop"
+                  width={280}
+                  height={280}
+                  className="relative z-10"
+                  priority
+                />
+              </div>
+
+              {/* Reflection effect */}
+              <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[200px] h-[60px] bg-gradient-to-b from-white/5 to-transparent blur-sm rounded-full" />
             </div>
           </div>
 
-          {/* Titulo estilo pixo */}
-          <div className="mb-2 animate-slide-up">
-            <h1 className="font-titulo text-5xl tracking-wider gold-shine">
-              BARBEARIA
-            </h1>
-            <h2 className="font-pixo text-4xl text-[#d4af37] spray-text -mt-1 rotate-[-2deg]">
-              CONCEITO
-            </h2>
-          </div>
-
-          {/* Slogan da quebrada */}
-          <p className="mb-8 text-[#888888] font-corpo text-lg tracking-wide animate-slide-up delay-100">
-            <Crown className="inline h-4 w-4 text-[#d4af37] mr-1" />
-            CORTE DE REI NA QUEBRADA
-            <Crown className="inline h-4 w-4 text-[#d4af37] ml-1" />
+          {/* Slogan */}
+          <p className="mb-8 text-[#888888] font-corpo text-lg tracking-widest animate-slide-up delay-100 uppercase">
+            <span className="inline-block w-8 h-[1px] bg-gradient-to-r from-transparent to-[#d4af37] mr-3 align-middle" />
+            Corte de Rei
+            <span className="inline-block w-8 h-[1px] bg-gradient-to-l from-transparent to-[#d4af37] ml-3 align-middle" />
           </p>
 
-          {/* CTA Button estilo funk */}
+          {/* CTA Button */}
           <Link
             href="/agendar"
-            className="group relative inline-flex items-center justify-center w-full py-4 px-8 btn-funk rounded animate-slide-up delay-200"
+            className="group relative inline-flex items-center justify-center w-full py-4 px-8 bg-gradient-to-r from-[#8b0000] via-[#a01010] to-[#8b0000] text-white font-titulo text-xl tracking-wider rounded-lg overflow-hidden transition-all duration-300 hover:shadow-[0_0_30px_rgba(139,0,0,0.5)] animate-slide-up delay-200"
           >
+            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
             <Calendar className="mr-3 h-6 w-6" />
-            <span className="text-xl">AGENDAR HORARIO</span>
+            <span>AGENDAR HORÁRIO</span>
             <Flame className="ml-2 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity" />
           </Link>
 
-          {/* Tag estilo graffiti */}
+          {/* Badge */}
           <div className="mt-6 animate-slide-up delay-300">
-            <span className="inline-block px-4 py-1 bg-[#8b0000] text-white font-pixo text-sm rounded rotate-[-1deg] border border-[#d4af37]/30">
-              100% QUEBRADA
+            <span className="inline-flex items-center gap-2 px-4 py-2 bg-[#141414] text-[#888888] font-corpo text-sm rounded-full border border-[#2a2a2a]">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              Agendamento Online
             </span>
           </div>
         </div>
